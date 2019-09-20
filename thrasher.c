@@ -15,8 +15,8 @@
 
 // Each piece of data can go in one of 16 ways
 // Which bits do what?
-// [  ...  |  way  |  line  |  byte  ]
-//          19   16 15     5 4      0
+// [ NC  | CS | bank | ...  |  way  |  line  |  byte  ]
+//  31 30  29  28  26        19   16 15     5 4      0
 
 int main(int argc, char** argv) {
     if (argc < 2) {
