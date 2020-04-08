@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Joshua Bakita
+ * Copyright 2020 Joshua Bakita
  * Created September 19 2019
  * Description: This program is designed to stress the i.MX6 Quad memory bus
  * and controller as much as possible by purposely generating cache misses.
@@ -9,15 +9,26 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
+#include <sys/time.h>
 
-// L1 is 4-way
-#define LINE_SIZE 32 // 8 32-bit words per line in L1 & L2; 32 bytes
-#define L2_SIZE 16*2048*32 // 16 ways, 2048 lines/way, 32 bytes/line
+// L1 is 8-way with 64 lines/way
+#define LINE_SIZE 64 // 8 64-bit words per line in L1, L2, and L3; 64 bytes
+#define L3_SIZE 16*16384*64 // 16 ways, 16384 lines/way, 64 bytes/line
 
 // Each piece of data can go in one of 16 ways
-// Which bits do what?
-// [ NC  | bank | ...  |  way  |  line  |  byte  ]
-//  31 30 29  27        19   16 15     5 4      0
+// Which bits do what for the L3?
+// [ ...  |  way  |  line  |  byte  ]
+//         23   20 19     6 5      0
+
+// Get the current time in miliseconds
+uint64_t get_ms() {
+	struct timeval tv = {0};
+	if (gettimeofday(&tv, NULL) < 0) {
+		perror("Unable to get current time. Terminating...");
+		exit(3);
+	}
+	return tv.tv_sec * 1000 + tv.tv_usec/1000;
+}
 
 int main(int argc, char** argv) {
     if (argc >= 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
@@ -26,7 +37,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    uint32_t iterations = 0;
+    unsigned long iterations = 0;
     if (argc >= 2) {
         char* status = {'\0'};
         iterations = strtol(argv[1], &status, 10);
@@ -41,24 +52,28 @@ int main(int argc, char** argv) {
     // Allocate a buffer meaningfully larger than the L2 such that when
     // iterating through, subsequent access to the same address will miss.
     // We make it generously larger as the L2 does not use true LRU.
-    uint8_t* buffer = malloc(L2_SIZE * 4);
+    uint8_t* buffer = malloc(L3_SIZE * 4);
 
     if (!buffer) {
         perror("Unable to allocate buffer. Terminating...");
         return 2;
     }
 
-    for (uint32_t i = 0; i < iterations || argc == 1; i++) {
-        for (uint32_t i = 0; i < L2_SIZE * 4; i += LINE_SIZE) {
+    uint64_t start = get_ms();
+    for (unsigned long i = 0; i < iterations || argc == 1; i++) {
+        for (unsigned long i = 0; i < L3_SIZE * 4; i += LINE_SIZE) {
             buffer[i]++;
         }
     }
-    // The below math relies on the L2 being at least 256KB
-    double total_kbytes = (L2_SIZE/1024)*4*iterations;
+    uint64_t end = get_ms();
+
+    // The below math relies on the L3 being at least 256KB
+    double total_kbytes = (L3_SIZE/1024)*4*iterations;
     if (total_kbytes/(1<<20) >= 1)
-        fprintf(stdout, "Completed generating %.1fGiB of memory requests.\n", total_kbytes/(1<<20));
+        fprintf(stdout, "Completed generating %.1fGiB of memory requests", total_kbytes/(1<<20));
     else
-        fprintf(stdout, "Completed generating %.1fMiB of memory requests.\n", total_kbytes/(1<<10));
+        fprintf(stdout, "Completed generating %.1fMiB of memory requests", total_kbytes/(1<<10));
+    fprintf(stdout, " in %.2f seconds.\n", (end - start) / 1000.0);
 
     free(buffer);
     return 0;
