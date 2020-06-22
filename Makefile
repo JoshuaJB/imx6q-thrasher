@@ -1,5 +1,5 @@
 MACHINE = bruford.cs.unc.edu
-CC = arm-linux-gnueabihf-gcc
+CC = gcc
 all: thrasher.c
 	$(CC) -O2 -o thrasher $^
 install: thrasher
