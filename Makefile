@@ -5,7 +5,7 @@ all: thrasher.c
 install: thrasher
 	scp thrasher root@$(MACHINE):/tmp/
 debug: thrasher.c
-	$(CC) -g -o thrasher $^
+	$(CC) -ggdb3 -o thrasher $^
 clean: thrasher.c
 	rm thrasher
 
