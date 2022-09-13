@@ -13,7 +13,7 @@
 
 // L1 is 8-way with 64 lines/way
 #define LINE_SIZE 64 // 8 64-bit words per line in L1, L2, and L3; 64 bytes
-#define L3_SIZE 16*16384*64 // 16 ways, 16384 lines/way, 64 bytes/line
+#define L3_SIZE 12*1024*1024 // 8MiB L2, 4MiB L3
 
 // Each piece of data can go in one of 16 ways
 // Which bits do what for the L3?
